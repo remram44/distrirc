@@ -1,6 +1,9 @@
 #ifndef HEADER_LINECONNECTION_H
 #define HEADER_LINECONNECTION_H
 
+#include <string>
+#include <list>
+
 #include "sockets/Socket.h"
 
 class LineConnection : public Waitable {
@@ -11,7 +14,9 @@ private:
 
 public:
     LineConnection(NetStream *stream);
-    std::string readLine(bool wait = false) throw(SocketConnectionClosed);
+    ~LineConnection();
+    std::list<std::string> readLines(bool wait = false)
+            throw(SocketConnectionClosed);
 
     void RegisterSockets(SocketSetRegistrar *registrar);
 

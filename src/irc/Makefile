@@ -20,3 +20,11 @@ runtests.exe: runtests.o LineConnection.o IRCServer.o tests/test_LineConnection.
 # Clean up object files
 clean:
 	$(RM) *.o
+
+
+runtests.o: runtests.cpp
+LineConnection.o: LineConnection.cpp LineConnection.h ../sockets/Socket.h
+IRCServer.o: IRCServer.cpp IRCServer.h ../sockets/Socket.h \
+ LineConnection.h
+test_LineConnection.o: tests/test_LineConnection.cpp LineConnection.h \
+ ../sockets/Socket.h

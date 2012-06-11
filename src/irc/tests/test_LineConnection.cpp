@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <iostream>
 
+//#define _DEBUG_FAKESTREAM
+
 class FakeStream : public NetStream {
 
 private:
@@ -27,7 +29,9 @@ public:
     int Recv(char *data, size_t size_max, bool wait = true)
             throw(SocketConnectionClosed)
     {
+#ifdef _DEBUG_FAKESTREAM
         std::cerr << "FakeStream::Recv(";
+#endif
         size_t pos = 0;
         while(pos < size_max)
         {
@@ -39,22 +43,33 @@ public:
             }
             if(m_Sizes[m_Chunk] < 0)
             {
+#ifdef _DEBUG_FAKESTREAM
                 std::cerr << ") throwing SocketConnectionClosed\n";
+#endif
                 throw SocketConnectionClosed();
             }
             data[pos] = m_Buffer[m_Pos];
+#ifdef _DEBUG_FAKESTREAM
             std::cerr << m_Buffer[m_Pos];
+#endif
             pos++;
             m_Pos++;
             m_PosInChunk++;
         }
+#ifdef _DEBUG_FAKESTREAM
         std::cerr << ") = " << pos << "\n";
+#endif
         return pos;
     }
 
     void RegisterSockets(SocketSetRegistrar *registrar)
     {
         throw std::runtime_error("FakeStream::RegisterSockets called");
+    }
+
+    inline size_t bytesRead() const
+    {
+        return m_Pos;
     }
 
 };
@@ -106,37 +121,106 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION(FakeStream_Test);
 
-/*class LineConnection_Test : public CppUnit::TestFixture {
-
-private:
-    Mod1_Truc *m_Truc;
+class LineConnection_Test : public CppUnit::TestFixture {
 
 public:
-    void setUp()
+    /*
+     * Note that LineConnection receives to an internal buffer, so it won't be
+     * receiving more that 128 bytes at once no matter what the FakeStream
+     * wants to return.
+     * Isn't a problem here -- we're using much smaller sizes.
+     */
+
+    void test_simple()
     {
-        m_Truc = new Mod1_Truc(12);
+        const char *data = "123\n\n12" "34\n" "12" "3\n" "12";
+        const int sizes[] = {7, 3, 2, 2, 2, -1};
+        FakeStream *stream = new FakeStream(data, sizes);
+        LineConnection *conn = new LineConnection(stream);
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 7);
+            CPPUNIT_ASSERT(l.size() == 2);
+            std::list<std::string>::const_iterator it = l.begin();
+            CPPUNIT_ASSERT(std::string("123") == *it++);
+            CPPUNIT_ASSERT(std::string() == *it++);
+        }
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 10);
+            CPPUNIT_ASSERT(l.size() == 1);
+            std::list<std::string>::const_iterator it = l.begin();
+            CPPUNIT_ASSERT(std::string("1234") == *it++);
+        }
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 12);
+            CPPUNIT_ASSERT(l.size() == 0);
+        }
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 14);
+            CPPUNIT_ASSERT(l.size() == 1);
+            std::list<std::string>::const_iterator it = l.begin();
+            CPPUNIT_ASSERT(std::string("123") == *it++);
+        }
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 16);
+            CPPUNIT_ASSERT(l.size() == 0);
+        }
+        CPPUNIT_ASSERT_THROW(conn->readLines(), SocketConnectionClosed);
+        CPPUNIT_ASSERT(stream->bytesRead() == 16);
+        delete conn;
     }
 
-    void tearDown()
+    void test_crlf()
     {
-        delete m_Truc;
+        const char *data = "123\n1234\r\n123";
+        const int sizes[] = {13, -1};
+        FakeStream *stream = new FakeStream(data, sizes);
+        LineConnection *conn = new LineConnection(stream);
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 13);
+            CPPUNIT_ASSERT(l.size() == 2);
+            std::list<std::string>::const_iterator it = l.begin();
+            CPPUNIT_ASSERT(std::string("123") == *it++);
+            CPPUNIT_ASSERT(std::string("1234") == *it++);
+        }
+        CPPUNIT_ASSERT_THROW(conn->readLines(), SocketConnectionClosed);
+        CPPUNIT_ASSERT(stream->bytesRead() == 13);
+        delete conn;
     }
 
-    void testFoo()
+    void test_binary()
     {
-        CPPUNIT_ASSERT(m_Truc->foo() == 12);
-    }
-
-    void testBar()
-    {
-        CPPUNIT_ASSERT(m_Truc->bar() == 42);
+        const char *data = "rémi\nrampin\r\n\x01is doing fine\x01\r\n"
+                "what\0ever\r\nQUIT";
+        const int sizes[] = {50, -1};
+        FakeStream *stream = new FakeStream(data, sizes);
+        LineConnection *conn = new LineConnection(stream);
+        {
+            std::list<std::string> l = conn->readLines();
+            CPPUNIT_ASSERT(stream->bytesRead() == 50);
+            CPPUNIT_ASSERT(l.size() == 4);
+            std::list<std::string>::const_iterator it = l.begin();
+            CPPUNIT_ASSERT(std::string("rémi") == *it++);
+            CPPUNIT_ASSERT(std::string("rampin") == *it++);
+            CPPUNIT_ASSERT(std::string("\x01is doing fine\x01") == *it++);
+            CPPUNIT_ASSERT(std::string("what\0ever", 9) == *it++);
+        }
+        CPPUNIT_ASSERT_THROW(conn->readLines(), SocketConnectionClosed);
+        CPPUNIT_ASSERT(stream->bytesRead() == 50);
+        delete conn;
     }
 
     CPPUNIT_TEST_SUITE(LineConnection_Test);
-    CPPUNIT_TEST(testFoo);
-    CPPUNIT_TEST(testBar);
+    CPPUNIT_TEST(test_simple);
+    CPPUNIT_TEST(test_crlf);
+    CPPUNIT_TEST(test_binary);
     CPPUNIT_TEST_SUITE_END();
 
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION(LineConnection_Test);*/
+CPPUNIT_TEST_SUITE_REGISTRATION(LineConnection_Test);
