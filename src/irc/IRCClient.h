@@ -1,6 +1,7 @@
 #ifndef HEADER_IRCCLIENT_H
 #define HEADER_IRCCLIENT_H
 
+#include <exception>
 #include <string>
 
 #include "sockets/Socket.h"
@@ -10,6 +11,21 @@
 class User;
 class ChannelUser;
 class Channel;
+
+/**
+ * Base class for exceptions thrown by IRCClient.
+ */
+class IRCError : public std::exception {
+
+private:
+    const std::string m_sMessage;
+
+public:
+    IRCError(const std::string &message);
+    ~IRCError() throw();
+    const char *what() const throw();
+
+};
 
 
 /*==============================================================================
