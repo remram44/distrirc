@@ -6,6 +6,13 @@
 
 #include "IRCClient.h"
 
+/*
+ * See RFCs 1459 and 2812.
+ *
+ * http://tools.ietf.org/html/rfc1459
+ * http://tools.ietf.org/html/rfc2812
+ */
+
 /**
  * A parser IRC command.
  *
@@ -41,6 +48,7 @@ public:
         CHANNELMODES,   // 324 channel, modes, mode params
         NOTOPIC,        // 331 channel, "No topic is set"
         TOPICIS,        // 332 channel, topic
+        TOPICWHOTIME,   // 333 channel, nick, timestamp
         WHOREP,         // 352 channel, user, host, server, nick,
                 // <H|G>[*][@|+], hopcount, realname
         ENDOFWHO,       // 315 target, "End of /WHO list"

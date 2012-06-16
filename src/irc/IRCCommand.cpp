@@ -18,6 +18,7 @@ static const char *const COMMANDS[IRCCommand::UNKNOWN] = {
     "324", // CHANNELMODES
     "331", // NOTOPIC
     "332", // TOPICIS
+    "333", // TOPICWHOTIME
     "352", // WHOREP
     "315", // ENDOFWHO
     "353", // NAMESARE

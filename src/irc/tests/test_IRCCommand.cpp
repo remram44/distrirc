@@ -76,25 +76,25 @@ SessionLine session[] = {
      IRCCommand(IRCCommand::MODE, "Test", "+iv", NULL)},
     {":Global!services@services.rezosup.net NOTICE Test :[Logon News - 19 Jun 2005] Pour desactiver le masquage du nom d'hote, tapez la commande /mode votre_pseudo -v",
      IRCCommand(IRCCommand::NOTICE, "Test", "[Logon News - 19 Jun 2005] Pour desactiver le masquage du nom d'hote, tapez la commande /mode votre_pseudo -v", NULL)},
-    {"JOIN #rezo",
+    {"JOIN #rezo",                                  // Sent by the client
      IRCCommand(IRCCommand::JOIN, "#rezo", NULL)},
     {":Test!distrirc@RZ-77dd3605.dyn.optonline.net JOIN :#rezo",
      IRCCommand(IRCCommand::JOIN, "#rezo", NULL)},
     {":irc.inp-net.rezosup.org 332 Test #rezo :Supélec Rézo | https://doc.rez-gif.supelec.fr | Logs IRC : https://www.rez-gif.supelec.fr/irclogs/2012/Rezosup/ | Bureau : TsCl (Prez) , Horo, Alef_Burzmali (Vprezs), eXenon (Trez), gxs (Screz)",
      IRCCommand(IRCCommand::TOPICIS, "Test", "#rezo", "Supélec Rézo | https://doc.rez-gif.supelec.fr | Logs IRC : https://www.rez-gif.supelec.fr/irclogs/2012/Rezosup/ | Bureau : TsCl (Prez) , Horo, Alef_Burzmali (Vprezs), eXenon (Trez), gxs (Screz)", NULL)},
-    {":irc.inp-net.rezosup.org 333 Test #rezo Zertrin 1337808621", // FIXME : 333 is not in RFC 1459
-     IRCCommand(IRCCommand::UNKNOWN, "Test", "#rezo", "Zertrin", "1337808621", NULL)},
+    {":irc.inp-net.rezosup.org 333 Test #rezo Zertrin 1337808621",
+     IRCCommand(IRCCommand::TOPICWHOTIME, "Test", "#rezo", "Zertrin", "1337808621", NULL)},
     {":irc.inp-net.rezosup.org 353 Test @ #rezo :Test @guitou ttdx BuLi @Remram @exenon @TsCl_ @ciblout paradis @Alef_Burzmali @Zertrin K-Yo clempar _Lily_ @DaLynX TheRezoRoux Tsakagur rr4botz2 @serianox horo bbc @phyce @VnC_ Z_ kage Gagou",
      IRCCommand(IRCCommand::NAMESARE, "Test", "@", "#rezo", "Test", "@guitou", "ttdx", "BuLi", "@Remram", "@exenon", "@TsCl_", "@ciblout", "paradis", "@Alef_Burzmali", "@Zertrin", "K-Yo", "clempar", "_Lily_", "@DaLynX", "TheRezoRoux", "Tsakagur", "rr4botz2", "@serianox", "horo", "bbc", "@phyce", "@VnC_", "Z_", "kage", "Gagou", NULL)},
     {":irc.inp-net.rezosup.org 366 Test #rezo :End of /NAMES list.",
      IRCCommand(IRCCommand::ENDOFNAMES, "Test", "#rezo", "End of /NAMES list.", NULL)},
-    {"NAMES #supelec",
+    {"NAMES #supelec",                              // Sent by the client
      IRCCommand(IRCCommand::NAMES, "#supelec", NULL)},
     {":irc.inp-net.rezosup.org 353 Test = #supelec :@Electron",
      IRCCommand(IRCCommand::NAMESARE, "Test", "=", "#supelec", "@Electron", NULL)},
     {":irc.inp-net.rezosup.org 366 Test #supelec :End of /NAMES list.",
      IRCCommand(IRCCommand::ENDOFNAMES, "Test", "#supelec", "End of /NAMES list.", NULL)},
-    {"WHO #rezo",
+    {"WHO #rezo",                                   // Sent by the client
      IRCCommand(IRCCommand::WHO, "#rezo", NULL)},
     {":irc.inp-net.rezosup.org 352 Test #rezo distrirc RZ-77dd3605.dyn.optonline.net irc.inp-net.rezosup.org Test H :0 Remram",
      IRCCommand(IRCCommand::WHOREP, "Test", "#rezo", "distrirc", "RZ-77dd3605.dyn.optonline.net", "irc.inp-net.rezosup.org", "Test", "H", "0", "Remram", NULL)},
@@ -108,11 +108,11 @@ SessionLine session[] = {
      IRCCommand(IRCCommand::WHOREP, "Test", "#rezo", "quassel", "RZ-c8308929.rez-gif.supelec.fr", "irc.supelec.rezosup.org", "_Lily_", "G", "3", "Marc Delorme", NULL)},
     {":irc.inp-net.rezosup.org 315 Test #rezo :End of /WHO list.",
      IRCCommand(IRCCommand::ENDOFWHO, "Test", "#rezo", "End of /WHO list.", NULL)},
-    {"PING :this is sparta",
+    {"PING :this is sparta",                        // Sent by the client
      IRCCommand(IRCCommand::PING, "this is sparta", NULL)},
     {":irc.inp-net.rezosup.org PONG irc.inp-net.rezosup.org :this is sparta",
      IRCCommand(IRCCommand::PONG, "irc.inp-net.rezosup.org", "this is sparta", NULL)},
-    {"QUIT :end of test",
+    {"QUIT :end of test",                           // Sent by the client
      IRCCommand(IRCCommand::QUIT, "end of test", NULL)},
     {"ERROR :Closing Link: ool-18ba5d00.dyn.optonline.net (Quit: end of test)",
      IRCCommand(IRCCommand::UNKNOWN, "Closing Link: ool-18ba5d00.dyn.optonline.net (Quit: end of test)", NULL)}
