@@ -21,12 +21,12 @@ public:
     {
     }
 
-    void Send(const char *data, size_t size) throw(SocketConnectionClosed)
+    void Send(const char*, size_t) throw(SocketConnectionClosed)
     {
         throw std::runtime_error("FakeStream::Send called");
     }
 
-    int Recv(char *data, size_t size_max, bool wait = true)
+    int Recv(char *data, size_t size_max, bool)
             throw(SocketConnectionClosed)
     {
 #ifdef _DEBUG_FAKESTREAM
@@ -62,7 +62,7 @@ public:
         return pos;
     }
 
-    void RegisterSockets(SocketSetRegistrar *registrar)
+    void RegisterSockets(SocketSetRegistrar*)
     {
         throw std::runtime_error("FakeStream::RegisterSockets called");
     }

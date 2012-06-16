@@ -11,7 +11,7 @@ test: runtests.exe
 
 # Linking
 runtests.exe: runtests.o LineConnection.o IRCClient.o IRCCommand.o \
-        tests/test_LineConnection.o
+        tests/test_LineConnection.o tests/test_IRCCommand.o
 	$(CXX) $(CFLAGS) $^ -o $@ -lcppunit -L.. -lsockets -lws2_32
 
 # Compile a .cpp into a .o
@@ -31,3 +31,5 @@ IRCCommand.o: IRCCommand.cpp IRCCommand.h IRCClient.h ../sockets/Socket.h \
  ../common/ReferenceCounted.h LineConnection.h
 test_LineConnection.o: tests/test_LineConnection.cpp LineConnection.h \
  ../sockets/Socket.h
+test_IRCCommand.o: tests/test_IRCCommand.cpp IRCCommand.h IRCClient.h \
+ ../sockets/Socket.h ../common/ReferenceCounted.h LineConnection.h

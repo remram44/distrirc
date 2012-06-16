@@ -1,5 +1,50 @@
 #include "IRCCommand.h"
 
+#include <cstdarg>
+
+static const char *const COMMANDS[IRCCommand::UNKNOWN] = {
+    "464", // INVALIDPASSWD
+    "465", // BANNED
+    "",    // OTHERERROR
+    "301", // AWAY
+    "306", // YOU_AWAY
+    "305", // YOU_UNAWAY
+    "311", // WHOISUSER
+    "312", // WHOISSERVER
+    "313", // WHOISOPERATOR
+    "317", // WHOISIDLE
+    "319", // WHOISCHANNELS
+    "318", // ENDOFWHOIS
+    "324", // CHANNELMODES
+    "331", // NOTOPIC
+    "332", // TOPICIS
+    "352", // WHOREP
+    "315", // ENDOFWHO
+    "353", // NAMESARE
+    "366", // ENDOFNAMES
+    "367", // BANLIST
+    "368", // ENDOFBANLIST
+    "375", // MOTDSTART
+    "372", // MOTD
+    "376", // ENDOFMOTD
+    "422", // NOMOTD
+    "303", // ISON
+
+    "PRIVMSG", // PRIVMSG
+    "NOTICE", // NOTICE
+    "TOPIC", // TOPIC
+    "JOIN", // JOIN
+    "PART", // PART
+    "QUIT", // QUIT
+    "NAMES", // NAMES
+    "WHO", // WHO,
+    "MODE", // MODE,
+    "NICK", // NICK
+    "INVITE", // INVITE
+    "PING", // PING
+    "PONG", // PONG
+};
+
 IRCCommand::Invalid::Invalid(const std::string &message)
   : IRCError(message)
 {
@@ -10,19 +55,20 @@ IRCCommand::IRCCommand(const std::string &line) throw(Invalid)
     size_t pos = 0;
     const size_t end = line.size();
 
+    if(end == 0)
+        throw Invalid("Line is empty");
+
     // Read the source
+    if(line[0] == ':')
     {
-        pos = line.find(' ');
+        pos = line.find(' ', 1);
         if(pos == std::string::npos)
-            throw Invalid("Line contains a single word");
-        if(line[0] == ':')
-            source = line.substr(1, pos - 1);
-        else
-            source = line.substr(0, pos);
+            throw Invalid("Line contains doesn't contain a command");
+        source = line.substr(1, pos - 1);
         pos++;
     }
-
-    // TODO : validate source
+    else
+        source = "";
 
     // Read and recognize the command
     {
@@ -30,45 +76,46 @@ IRCCommand::IRCCommand(const std::string &line) throw(Invalid)
         if(cmd_end == std::string::npos)
             cmd_end = end;
         std::string cmd = line.substr(pos, cmd_end - pos);
-        if(cmd == "PRIVMSG")
-            type = IRCCommand::CHANMSG;
-        else if(cmd == "376" || cmd == "422")
-            type = IRCCommand::ENDOFMOTD;
-        else if(cmd == "332")
-            type = IRCCommand::TOPIC;
-        else if(cmd == "353")
-            type = IRCCommand::NAMES;
-        else if(cmd == "366")
-            type = IRCCommand::ENDOFNAMES;
-        else if(cmd == "352")
-            type = IRCCommand::WHO;
-        else if(cmd == "315")
-            type = IRCCommand::ENDOFWHO;
-        else if(cmd == "JOIN")
-            type = IRCCommand::JOIN;
-        else if(cmd == "PART")
-            type = IRCCommand::PART;
-        else if(cmd == "QUIT")
-            type = IRCCommand::QUIT;
-        else if(cmd == "MODE")
-            type = IRCCommand::MODE;
-        else if(cmd == "NICK")
-            type = IRCCommand::NICK;
-        else
-            type = IRCCommand::UNKNOWN;
+        type = UNKNOWN;
+        int i;
+        for(i = 0; i < UNKNOWN; i++)
+            if(cmd == COMMANDS[i])
+                type = (EType)i;
+        if(type == UNKNOWN)
+        {
+            const char *ptr = cmd.c_str();
+            char *endptr;
+            int num = strtol(ptr, &endptr, 10);
+            if( (endptr == ptr + cmd.size()) && 400 <= num && num <= 599)
+                type = OTHERERROR;
+        }
 
         pos = cmd_end + 1;
     }
 
-    // On lit les paramètres
+    // Read the arguments
     while(pos < end)
     {
-        if(line[pos] != ':' || type == IRCCommand::WHO)
+        // Various fixes for commands that use unpractical formats (ex. with
+        // misplaced ':')
+        bool ignore_colon = (
+                type == WHOISCHANNELS ||
+                type == WHOREP ||
+                type == NAMESARE ||
+                type == ISON);
+        bool force_colon = (
+                type == WHOREP &&
+                args.size() == 8);
+        bool colon = line[pos] == ':';
+        if(colon)
+            pos++;
+        if( (colon && !ignore_colon) || force_colon)
         {
-            if(line[pos] == ':') // Happens with the WHO command
-                // hopcount is prefixed with ':' but is NOT the last command,
-                // realname follows
-                pos++;
+            args.push_back(line.substr(pos, end - pos));
+            break;
+        }
+        else
+        {
             size_t param_end = line.find(' ', pos);
             if(param_end == std::string::npos)
                 param_end = end;
@@ -77,13 +124,34 @@ IRCCommand::IRCCommand(const std::string &line) throw(Invalid)
             if(pos != end)
                 pos++;
         }
-        else
-        {
-            pos++;
-            args.push_back(line.substr(pos, end - pos));
-            break;
-        }
     }
+}
+
+IRCCommand::IRCCommand(EType type_, const std::vector<std::string> &args_)
+  : type(type_), args(args_)
+{
+}
+
+IRCCommand::IRCCommand(EType type_, ...)
+  : type(type_)
+{
+    va_list ap;
+    va_start(ap, type_);
+    const char *args_;
+    while((args_ = va_arg(ap, const char*)) != NULL)
+        args.push_back(args_);
+    va_end(ap);
+}
+
+IRCCommand::IRCCommand(const std::string &source_, EType type_, ...)
+  : type(type_), source(source_)
+{
+    va_list ap;
+    va_start(ap, type_);
+    const char *args_;
+    while((args_ = va_arg(ap, const char*)) != NULL)
+        args.push_back(args_);
+    va_end(ap);
 }
 
 std::string IRCCommand::readSource(std::string *user, std::string *host)
@@ -91,53 +159,43 @@ std::string IRCCommand::readSource(std::string *user, std::string *host)
     return readSource(source, user, host);
 }
 
-// :nick!user@host
-// :nick!~user@host
-// :user@host
-// :host
+// 1 [:]nick!user@host
+// 2 [:]user@host
+// 3 [:]host
 std::string IRCCommand::readSource(const std::string &usermask,
         std::string *user, std::string *host)
 {
     size_t begin = 0;
     if(usermask[0] == ':')
         begin = 1;
-    size_t end = usermask.find('!');
-    if(end != std::string::npos)
+
+    size_t ar = usermask.rfind('@');
+
+    // Case 3
+    if(ar == std::string::npos)
     {
-        if(user != NULL || host != NULL)
-        {
-            size_t arob = usermask.find('@');
-            if(arob != std::string::npos)
-            {
-                if(user != NULL) *user = usermask.substr(end+1, arob-end-1);
-                if(host != NULL) *host = usermask.substr(arob+1);
-            }
-            else
-            {
-                // Missing fields!
-                if(user != NULL) *user = "";
-                if(host != NULL) *host = "";
-            }
-        }
-        return usermask.substr(begin, end - begin);
+        if(user != NULL) *user = "";
+        if(host != NULL) *host = usermask.substr(begin);
+        return "";
     }
+    // Case 1 or 2
     else
     {
-        if(user != NULL || host != NULL)
+        size_t ex = usermask.rfind('!', ar);
+
+        // Case 2
+        if(ex == std::string::npos)
         {
-            size_t arob = usermask.find('@');
-            if(arob != std::string::npos)
-            {
-                // Really shouldn't happen
-                if(user != NULL) *user = usermask.substr(begin, arob - begin);
-                if(host != NULL) *host = usermask.substr(arob+1);
-            }
-            else
-            {
-                if(user != NULL) *user = "";
-                if(host != NULL) *host = usermask.substr(begin);
-            }
+            if(user != NULL) *user = usermask.substr(begin, ar - begin);
+            if(host != NULL) *host = usermask.substr(ar + 1);
+            return "";
         }
-        return "";
+        // Case 1
+        else
+        {
+            if(user != NULL) *user = usermask.substr(ex + 1, ar - ex - 1);
+            if(host != NULL) *host = usermask.substr(ar + 1);
+            return usermask.substr(begin, ex - begin);
+        }
     }
 }
