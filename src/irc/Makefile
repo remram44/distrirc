@@ -1,29 +1,35 @@
 CXX=g++ -g
 RM=del /F
-CFLAGS=-Wall -W -Wall -Wextra -I"." -I".."
+AR=ar rcs
+INCLUDES=
+CPPFLAGS=$(INCLUDES) -Wall -W -Wall -Wextra -I"." -I".."
 
 .PHONY: all test clean
 
-all: test
+all: ../libirc.a
 
 test: runtests.exe
 	runtests.exe
 
-# Linking
-runtests.exe: runtests.o LineConnection.o IRCClient.o IRCCommand.o \
-        tests/test_LineConnection.o tests/test_IRCCommand.o
-	$(CXX) $(CFLAGS) $^ -o $@ -lcppunit -L.. -lsockets -lws2_32
+# Build the static library
+../libirc.a: LineConnection.o IRCClient.o IRCCommand.o
+	$(AR) ../libirc.a $^
 
 # Compile a .cpp into a .o
 %.o: %.cpp
-	$(CXX) -c $(CFLAGS) $< -o $@
+	$(CXX) -c $(CPPFLAGS) $< -o $@
 
 # Clean up object files
 clean:
-	$(RM) *.o
+	$(RM) *.o tests\*.o
+
+# Test
+runtests.exe: ../libsockets.a ../libirc.a \
+        ../common/runtests.o \
+        tests/test_LineConnection.o tests/test_IRCCommand.o
+	$(CXX) $(CFLAGS) ../common/runtests.o tests/test_LineConnection.o tests/test_IRCCommand.o -o $@ -lcppunit -L.. -lirc -lsockets -lws2_32
 
 
-runtests.o: runtests.cpp
 LineConnection.o: LineConnection.cpp LineConnection.h ../sockets/Socket.h
 IRCClient.o: IRCClient.cpp IRCClient.h ../sockets/Socket.h \
  ../common/ReferenceCounted.h LineConnection.h
